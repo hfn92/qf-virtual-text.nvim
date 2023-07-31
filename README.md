@@ -1,0 +1,1 @@
+# qf-virtual-text.nvim
