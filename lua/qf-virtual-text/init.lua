@@ -30,6 +30,25 @@ local ns_id = vim.api.nvim_create_namespace("qf-virtual-text")
 --  Expected: (2) <= (1), actual: 2 vs 1
 --  Expected: (2 + 3) != (2 + 3), actual: 5 vs 5
 --  Expected: (std::string("test")) != (std::string("test")), actual: "test" vs "test"
+--
+--  GMock
+--Failure
+-- Actual function call count doesn't match EXPECT_CALL(m, fn())...
+--          Expected: to be called once
+--            Actual: never called - unsatisfied and active
+--
+--SuiteA/main.cpp|50| Failure
+--  Mock function called more times than expected - returning directly.
+--      Function call: fn2()
+--           Expected: to be called once
+--             Actual: called twice - over-saturated and active
+--
+--
+-- EXPECT_CALL(m, fni(1))...
+--   Expected arg #0: is equal to 1
+--            Actual: 2
+--          Expected: to be called once
+--            Actual: never called - unsatisfied and active-
 
 local function clear()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -83,11 +102,41 @@ local function get_text_gtest(qf_items, idx, item)
     return next.text
   end
 
+  if starts_with(next.text, "Mock function called more times than expected - returning directly.") then
+    local ok, res = remove_prefix(qf_items[idx + 4].text, "           Actual: ")
+    if ok then
+      return res
+    end
+    return next.text
+  end
+
+  if starts_with(next.text, "Actual function call count doesn't match EXPECT_CALL") then
+    local ok, res = remove_prefix(qf_items[idx + 3].text, "           Actual: ")
+    if ok then
+      return res
+    end
+    return next.text
+  end
+
+  if starts_with(item.text, " EXPECT_CALL(") or starts_with(item.text, " tried expectation ") then
+    local ok1, first = remove_prefix(qf_items[idx + 1].text, "  Expected ")
+    local ok2, second = remove_prefix(qf_items[idx + 2].text, "           Actual: ")
+    if ok1 and ok2 then
+      first = first:match("(.+):.+")
+      return first .. " was " .. second
+    end
+    return next.text
+  end
+
   return item.text
 end
 
 local function get_text(qf_items, idx, item)
-  if item.text == " Failure" then
+  if
+    item.text == " Failure"
+    or starts_with(item.text, " EXPECT_CALL(")
+    or starts_with(item.text, " tried expectation ")
+  then
     local ok, text = pcall(function()
       return get_text_gtest(qf_items, idx, item)
     end)
