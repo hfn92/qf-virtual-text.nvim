@@ -5,7 +5,6 @@ local M = {}
 
 local config = const
 local ns_id = vim.api.nvim_create_namespace("qf-virtual-text")
-
 -- GTest error formats
 --
 -- _TRUE, _FALSE
@@ -51,9 +50,7 @@ local ns_id = vim.api.nvim_create_namespace("qf-virtual-text")
 --            Actual: never called - unsatisfied and active-
 
 local function clear()
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
-  end
+  vim.diagnostic.reset(ns_id)
 end
 
 local function remove_prefix(text, prefix)
@@ -141,40 +138,58 @@ local function get_text(qf_items, idx, item)
       return get_text_gtest(qf_items, idx, item)
     end)
     if ok then
-      return text, "error"
+      item.col = #"  EXPECT_XX"
+      return text, vim.diagnostic.severity.ERROR
     end
   end
 
-  if starts_with(item.text, "warning:") or starts_with(item.text, " warning:") then
-    return item.text, "warn"
+  for _, prefix in ipairs({ "error:", " error:" }) do
+    if starts_with(item.text, prefix) then
+      item.text = string.sub(item.text, #prefix + 1)
+      return item.text, vim.diagnostic.severity.ERROR
+    end
   end
 
-  if starts_with(item.text, "error:") or starts_with(item.text, " error:") then
-    return item.text, "error"
+  for _, prefix in ipairs({ "warning:", " warning:" }) do
+    if starts_with(item.text, prefix) then
+      item.text = string.sub(item.text, #prefix + 1)
+      return item.text, vim.diagnostic.severity.WARN
+    end
   end
 
-  return item.text, "info"
+  return item.text, vim.diagnostic.severity.INFO
 end
 
 local function show_virt_text()
   local qf_items = vim.fn.getqflist()
+
+  local messages = {}
+
   for idx, v in ipairs(qf_items) do
-    if v.valid then
-      local bnr = v.bufnr
-      local line_num = v.lnum - 1
+    if v.valid == 1 then
+      local text, severity = get_text(qf_items, idx, v)
 
-      local text, type = get_text(qf_items, idx, v)
+      if not messages[v.bufnr] then
+        messages[v.bufnr] = {}
+      end
 
-      text = "   " .. text
-
-      local opts = {
-        virt_text = { { text, config.highlight[type] } },
+      messages[v.bufnr][#messages[v.bufnr] + 1] = {
+        lnum = v.lnum - 1,
+        col = v.col - 1,
+        severity = severity,
+        bufnr = v.bufnr,
+        message = text,
+        end_lnum = v.end_lnum > 0 and v.end_lnum or nil,
+        end_col = v.end_col > 0 and v.end_col or nil,
       }
-      local ok, err = pcall(function()
-        vim.api.nvim_buf_set_extmark(bnr, ns_id, line_num, 0, opts)
-      end)
     end
   end
+
+  pcall(function()
+    for k, v in pairs(messages) do
+      vim.diagnostic.set(ns_id, k, v, {})
+    end
+  end)
 end
 
 local function refresh_job()
