@@ -143,14 +143,24 @@ local function get_text(qf_items, idx, item)
     end
   end
 
-  for _, prefix in ipairs({ "error:", " error:" }) do
+  for _, prefix in ipairs({
+    "error: ",
+    " error: ",
+    "error:",
+    " error:",
+  }) do
     if starts_with(item.text, prefix) then
       item.text = string.sub(item.text, #prefix + 1)
       return item.text, vim.diagnostic.severity.ERROR
     end
   end
 
-  for _, prefix in ipairs({ "warning:", " warning:" }) do
+  for _, prefix in ipairs({
+    "warning: ",
+    " warning: ",
+    "warning:",
+    " warning:",
+  }) do
     if starts_with(item.text, prefix) then
       item.text = string.sub(item.text, #prefix + 1)
       return item.text, vim.diagnostic.severity.WARN
