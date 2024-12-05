@@ -5,6 +5,7 @@ local M = {}
 
 local config = const
 local ns_id = vim.api.nvim_create_namespace("qf-virtual-text")
+local ns_hl = vim.api.nvim_create_namespace("qf-virtual-text-hl")
 -- GTest error formats
 --
 -- _TRUE, _FALSE
@@ -170,10 +171,28 @@ local function get_text(qf_items, idx, item)
   return item.text, vim.diagnostic.severity.INFO
 end
 
+local highlight = {
+  [vim.diagnostic.severity.ERROR] = "QfError",
+  [vim.diagnostic.severity.WARN] = "QfWarn",
+}
+
+local function get_quickfix_buffer()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "quickfix" then
+      return buf
+    end
+  end
+  return nil -- Return nil if no Quickfix window is found
+end
+
 local function show_virt_text()
+  vim.diagnostic.reset(ns_hl)
   local qf_items = vim.fn.getqflist()
 
   local messages = {}
+
+  local qfbuf = get_quickfix_buffer()
 
   for idx, v in ipairs(qf_items) do
     if v.valid == 1 then
@@ -181,6 +200,13 @@ local function show_virt_text()
 
       if not messages[v.bufnr] then
         messages[v.bufnr] = {}
+      end
+
+      if qfbuf and highlight[severity] then
+        local ok, err = pcall(function()
+          vim.api.nvim_buf_add_highlight(qfbuf, ns_hl, highlight[severity], idx - 1, 0, -1)
+          -- vim.api.nvim_buf_set_extmark(qfbuf, ns_id, idx, 0, opts)
+        end)
       end
 
       messages[v.bufnr][#messages[v.bufnr] + 1] = {
@@ -212,6 +238,14 @@ local function refresh_job()
 end
 
 function M.setup(values)
+  vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_augroup("QfOnQfOpen", { clear = true }),
+    pattern = "qf",
+    callback = function()
+      vim.api.nvim_set_hl(0, "QfError", { bg = "#542F2F" })
+      vim.api.nvim_set_hl(0, "QfWarn", { bg = "#3b3c3c" })
+    end,
+  })
   vim.tbl_deep_extend("force", config, values)
   refresh_job()
 end
