@@ -187,12 +187,15 @@ local function get_quickfix_buffer()
 end
 
 local function show_virt_text()
-  vim.diagnostic.reset(ns_hl)
   local qf_items = vim.fn.getqflist()
 
   local messages = {}
 
   local qfbuf = get_quickfix_buffer()
+
+  if qfbuf then
+    vim.api.nvim_buf_clear_namespace(qfbuf, ns_hl, 0, -1)
+  end
 
   for idx, v in ipairs(qf_items) do
     if v.valid == 1 then
