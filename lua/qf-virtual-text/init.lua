@@ -206,9 +206,8 @@ local function show_virt_text()
       end
 
       if qfbuf and highlight[severity] then
-        local ok, err = pcall(function()
+        pcall(function()
           vim.api.nvim_buf_add_highlight(qfbuf, ns_hl, highlight[severity], idx - 1, 0, -1)
-          -- vim.api.nvim_buf_set_extmark(qfbuf, ns_id, idx, 0, opts)
         end)
       end
 
@@ -229,6 +228,8 @@ local function show_virt_text()
       vim.diagnostic.set(ns_id, k, v, {})
     end
   end)
+
+  -- vim.notify("DONE " .. vim.inspect(qf_items))
 end
 
 local function refresh_job()
@@ -241,15 +242,34 @@ local function refresh_job()
 end
 
 function M.setup(values)
+  vim.tbl_deep_extend("force", config, values)
+
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("QfOnQfOpen", { clear = true }),
     pattern = "qf",
     callback = function()
       vim.api.nvim_set_hl(0, "QfError", { bg = "#542F2F" })
       vim.api.nvim_set_hl(0, "QfWarn", { bg = "#3b3c3c" })
+
+      -- print("attack to qf")
+      --
+      -- vim.api.nvim_create_autocmd(
+      --   { "QuickFixCmdPost", "BufReadPost", "TextChanged", "TextChangedI", "TextChangedP", "TextChangedI" },
+      --   {
+      --     buffer = ev.buf,
+      --     group = vim.api.nvim_create_augroup("QfChanged", { clear = true }),
+      --     callback = function(ev)
+      --       vim.notify(vim.inspect(ev))
+      --       vim.defer_fn(function()
+      --         clear()
+      --         show_virt_text()
+      --       end, 250)
+      --     end,
+      --   }
+      -- )
     end,
   })
-  vim.tbl_deep_extend("force", config, values)
+
   refresh_job()
 end
 
