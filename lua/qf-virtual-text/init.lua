@@ -168,6 +168,13 @@ local function get_text(qf_items, idx, item)
     end
   end
 
+  print(item.text)
+
+  if item.text:find(": undefined reference to", nil, true) then
+    item.text = string.gsub(item.text, "^.-undefined", "undefined")
+    return item.text, vim.diagnostic.severity.ERROR
+  end
+
   return item.text, vim.diagnostic.severity.INFO
 end
 
@@ -248,8 +255,8 @@ function M.setup(values)
     group = vim.api.nvim_create_augroup("QfOnQfOpen", { clear = true }),
     pattern = "qf",
     callback = function()
-      vim.api.nvim_set_hl(0, "QfError", { bg = "#542F2F" })
-      vim.api.nvim_set_hl(0, "QfWarn", { bg = "#3b3c3c" })
+      vim.api.nvim_set_hl(0, "QfError", { bg = "#542F2F", underline = true, sp = "#CC6666" })
+      vim.api.nvim_set_hl(0, "QfWarn", { bg = "#3b3c3c", underline = true, sp = "#de935f" })
 
       -- print("attack to qf")
       --
