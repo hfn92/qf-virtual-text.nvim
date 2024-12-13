@@ -170,7 +170,7 @@ local function get_text(qf_items, idx, item)
 
   print(item.text)
 
-  if item.text:find(": undefined reference to", nil, true) then
+  if item.text:find("undefined reference to", nil, true) then
     item.text = string.gsub(item.text, "^.-undefined", "undefined")
     return item.text, vim.diagnostic.severity.ERROR
   end
@@ -181,6 +181,13 @@ end
 local highlight = {
   [vim.diagnostic.severity.ERROR] = "QfError",
   [vim.diagnostic.severity.WARN] = "QfWarn",
+}
+
+local cmake_highlight = {
+  build_file = "QfCMakeFile",
+  build_target = "QfCMakeTarget",
+  exit_error = "QfCMakeExitError",
+  exit_ok = "QfCMakeExitOk",
 }
 
 local function get_quickfix_buffer()
@@ -227,6 +234,29 @@ local function show_virt_text()
         end_lnum = v.end_lnum > 0 and v.end_lnum or nil,
         end_col = v.end_col > 0 and v.end_col or nil,
       }
+    else
+      if qfbuf then
+        local cmake_build_pattern = "^%[%s*(%d+)%%%]%s+(.+)"
+        local match, text = v.text:match(cmake_build_pattern)
+        if match then
+          print(text)
+          local hl
+          if starts_with(text, "Built target") or starts_with(text, "Linking") then
+            hl = cmake_highlight.build_target
+          elseif starts_with(text, "Building ") then
+            hl = cmake_highlight.build_file
+          end
+          if hl then
+            vim.api.nvim_buf_add_highlight(qfbuf, ns_hl, hl, idx - 1, 0, -1)
+          end
+        else
+          if starts_with(v.text, "Exited with code 0") then
+            vim.api.nvim_buf_add_highlight(qfbuf, ns_hl, cmake_highlight.exit_ok, idx - 1, 0, -1)
+          elseif starts_with(v.text, "Exited with code") then
+            vim.api.nvim_buf_add_highlight(qfbuf, ns_hl, cmake_highlight.exit_error, idx - 1, 0, -1)
+          end
+        end
+      end
     end
   end
 
@@ -257,6 +287,10 @@ function M.setup(values)
     callback = function()
       vim.api.nvim_set_hl(0, "QfError", { bg = "#542F2F", underline = true, sp = "#CC6666" })
       vim.api.nvim_set_hl(0, "QfWarn", { bg = "#3b3c3c", underline = true, sp = "#de935f" })
+      vim.api.nvim_set_hl(0, "QfCMakeTarget", { link = "Comment" })
+      vim.api.nvim_set_hl(0, "QfCMakeFile", { fg = "#6B6D6E" })
+      vim.api.nvim_set_hl(0, "QfCMakeExitError", { link = "DiagnosticError" })
+      vim.api.nvim_set_hl(0, "QfCMakeExitOk", { link = "DiagnosticOk" })
 
       -- print("attack to qf")
       --
