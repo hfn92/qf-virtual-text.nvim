@@ -239,7 +239,6 @@ local function show_virt_text()
         local cmake_build_pattern = "^%[%s*(%d+)%%%]%s+(.+)"
         local match, text = v.text:match(cmake_build_pattern)
         if match then
-          print(text)
           local hl
           if starts_with(text, "Built target") or starts_with(text, "Linking") then
             hl = cmake_highlight.build_target
