@@ -93,7 +93,7 @@ local function get_text_gtest(qf_items, idx, item)
   end
 
   if starts_with(next.text, "Value of: ") then
-    return qf_items[idx + 3].text .. qf_items[idx + 2].text
+    return qf_items[idx + 3].text .. " " .. qf_items[idx + 2].text
   end
 
   if starts_with(next.text, "Expected: ") then
