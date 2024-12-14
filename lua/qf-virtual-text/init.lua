@@ -168,8 +168,6 @@ local function get_text(qf_items, idx, item)
     end
   end
 
-  print(item.text)
-
   if item.text:find("undefined reference to", nil, true) then
     item.text = string.gsub(item.text, "^.-undefined", "undefined")
     return item.text, vim.diagnostic.severity.ERROR
