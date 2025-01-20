@@ -209,6 +209,8 @@ local function show_virt_text()
     vim.api.nvim_buf_clear_namespace(qfbuf, ns_hl, 0, -1)
   end
 
+  local already_added = {}
+
   for idx, v in ipairs(qf_items) do
     if v.valid == 1 then
       local text, severity = get_text(qf_items, idx, v)
@@ -223,15 +225,19 @@ local function show_virt_text()
         end)
       end
 
-      messages[v.bufnr][#messages[v.bufnr] + 1] = {
-        lnum = v.lnum - 1,
-        col = v.col - 1,
-        severity = severity,
-        bufnr = v.bufnr,
-        message = text,
-        end_lnum = v.end_lnum > 0 and v.end_lnum or nil,
-        end_col = v.end_col > 0 and v.end_col or nil,
-      }
+      local key = string.format("%s:%d:%d", text, v.lnum, v.col)
+      if not already_added[key] then
+        already_added[key] = true
+        messages[v.bufnr][#messages[v.bufnr] + 1] = {
+          lnum = v.lnum - 1,
+          col = v.col - 1,
+          severity = severity,
+          bufnr = v.bufnr,
+          message = text,
+          end_lnum = v.end_lnum > 0 and v.end_lnum or nil,
+          end_col = v.end_col > 0 and v.end_col or nil,
+        }
+      end
     else
       if qfbuf then
         local cmake_build_pattern = "^%[%s*(%d+)%%%]%s+(.+)"
