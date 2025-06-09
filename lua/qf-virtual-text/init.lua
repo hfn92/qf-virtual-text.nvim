@@ -241,12 +241,22 @@ local function show_virt_text()
     else
       if qfbuf then
         local cmake_build_pattern = "^%[%s*(%d+)%%%]%s+(.+)"
+        local ninja_build_pattern = "^%[(.+)]%s+(.+)"
         local match, text = v.text:match(cmake_build_pattern)
+
+        if not match then
+          match, text = v.text:match(ninja_build_pattern)
+        end
+
         if match then
           local hl
           if starts_with(text, "Built target") or starts_with(text, "Linking") then
             hl = cmake_highlight.build_target
           elseif starts_with(text, "Building ") then
+            hl = cmake_highlight.build_file
+          elseif starts_with(text, "Scanning ") then
+            hl = cmake_highlight.build_file
+          elseif starts_with(text, "Generating ") then
             hl = cmake_highlight.build_file
           end
           if hl then
